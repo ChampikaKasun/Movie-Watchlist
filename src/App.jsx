@@ -1,21 +1,33 @@
 import { useEffect, useState } from "react";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "./firebase";
+import AuthCard from "./components/AuthCard";
 
 function App() {
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [movies, setMovies] = useState([]);
   const [search, setSearch] = useState("");
 
   const apiKey = import.meta.env.VITE_TMDB_API_KEY;
 
-  // Fetch popular movies on first load
   useEffect(() => {
-    fetchPopular();
-}, []);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (user) fetchPopular();
+  }, [user]);
 
   const fetchPopular = async () => {
     const url = `https://api.themoviedb.org/3/movie/popular?api_key=${apiKey}&language=en-US&page=1`;
     try {
-      const response = await fetch(url);
-      const data = await response.json();
+      const res = await fetch(url);
+      const data = await res.json();
       setMovies(data.results);
     } catch (err) {
       console.error("Error fetching movies:", err);
@@ -24,70 +36,73 @@ function App() {
 
   const handleSearch = async (e) => {
     e.preventDefault();
-
-    // If search is empty, show popular movies again
     if (search.trim() === "") {
       fetchPopular();
       return;
     }
-
     const url = `https://api.themoviedb.org/3/search/movie?api_key=${apiKey}&language=en-US&query=${encodeURIComponent(search)}&page=1`;
     try {
-      const response = await fetch(url);
-      const data = await response.json();
+      const res = await fetch(url);
+      const data = await res.json();
       setMovies(data.results);
     } catch (err) {
       console.error("Error searching movies:", err);
     }
   };
 
+  const handleLogout = async () => {
+    await signOut(auth);
+  };
+
+  if (authLoading) {
+    return <p style={{ textAlign: "center", marginTop: "60px", color: "#9a9aa8" }}>Loading...</p>;
+  }
+
+  if (!user) {
+    return <AuthCard />;
+  }
+
   return (
-    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-      <h1>🎬 Movie Watchlist</h1>
+    <div>
+      <header className="app-header">
+        <h1>🎬 Movie Watchlist</h1>
+        <button onClick={handleLogout} className="btn-logout">Log Out</button>
+      </header>
 
-      <form onSubmit={handleSearch} style={{ margin: "20px 0", display: "flex", gap: "8px" }}>
-        <input
-          type="text"
-          placeholder="Search for a movie..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ flex: 1, padding: "10px", borderRadius: "8px", border: "1px solid #ccc" }}
-        />
-        <button type="submit" style={{ padding: "10px 18px", borderRadius: "8px", cursor: "pointer" }}>
-          Search
-        </button>
-      </form>
+      <div className="page">
+        <form onSubmit={handleSearch} className="search-form">
+          <input
+            type="text"
+            placeholder="Search for a movie..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button type="submit" className="btn-primary">Search</button>
+        </form>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-          gap: "16px",
-        }}
-      >
-        {movies.length === 0 ? (
-          <p>No movies found.</p>
-        ) : (
-          movies.map((movie) => (
-            <div key={movie.id} style={{ textAlign: "center" }}>
-              {movie.poster_path ? (
-                <img
-                  src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
-                  alt={movie.title}
-                  style={{ width: "100%", borderRadius: "8px" }}
-                />
-              ) : (
-                <div style={{ height: "240px", background: "#ddd", borderRadius: "8px" }} />
-              )}
-              <p style={{ fontSize: "14px", fontWeight: "600", margin: "8px 0 2px" }}>
-                {movie.title}
-              </p>
-              <p style={{ fontSize: "12px", color: "#666" }}>
-                ⭐ {movie.vote_average?.toFixed(1) ?? "N/A"}
-              </p>
-            </div>
-          ))
-        )}
+        <h2 className="section-title">Movies</h2>
+        <div className="movie-grid">
+          {movies.length === 0 ? (
+            <p className="empty-state">No movies found.</p>
+          ) : (
+            movies.map((movie) => (
+              <div key={movie.id} className="movie-card">
+                {movie.poster_path ? (
+                  <img
+                    src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
+                    alt={movie.title}
+                  />
+                ) : (
+                  <div className="movie-poster-fallback">No image</div>
+                )}
+                <div className="movie-info">
+                  <div className="movie-title">{movie.title}</div>
+                  <div className="movie-rating">⭐ {movie.vote_average?.toFixed(1) ?? "N/A"}</div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
