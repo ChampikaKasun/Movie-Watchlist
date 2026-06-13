@@ -243,3 +243,54 @@ body {
   transition: background 0.2s, color 0.2s;
 }
 .view-tab.active { background: var(--accent); color: #1a1400; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 640px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  padding: 24px;
+}
+.modal-close {
+  position: absolute;
+  top: 14px; right: 14px;
+  background: var(--surface-2);
+  border: none;
+  color: var(--text);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+}
+.modal-close:hover { background: var(--danger); }
+.modal-content { display: flex; gap: 20px; flex-wrap: wrap; }
+.modal-poster { width: 200px; border-radius: 12px; }
+.modal-info { flex: 1; min-width: 240px; }
+.modal-info h2 { font-family: 'Sora', sans-serif; font-size: 22px; margin-bottom: 4px; }
+.modal-tagline { color: var(--text-dim); font-style: italic; margin-bottom: 12px; }
+.modal-meta { display: flex; gap: 16px; color: var(--accent); font-weight: 600; font-size: 14px; margin-bottom: 12px; }
+.modal-genres { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.genre-pill {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.modal-overview { color: var(--text); font-size: 14px; line-height: 1.6; }

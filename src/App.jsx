@@ -5,6 +5,7 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import AuthCard from "./components/AuthCard";
+import MovieModal from "./components/MovieModal";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -13,6 +14,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [watchlist, setWatchlist] = useState([]);
   const [view, setView] = useState("browse"); // "browse" or "watchlist"
+  const [selectedMovieId, setSelectedMovieId] = useState(null);
 
   const apiKey = import.meta.env.VITE_TMDB_API_KEY;
 
@@ -164,10 +166,16 @@ function App() {
               return (
                 <div key={movie.movieId} className="movie-card">
                   {movie.poster_path ? (
-                    <img
-                      src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
-                      alt={movie.title}
-                    />
+                    <div onClick={() => setSelectedMovieId(movie.movieId)} style={{ cursor: "pointer" }}>
+                    {movie.poster_path ? (
+                      <img
+                        src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
+                        alt={movie.title}
+                      />
+                    ) : (
+                      <div className="movie-poster-fallback">No image</div>
+                    )}
+                  </div>
                   ) : (
                     <div className="movie-poster-fallback">No image</div>
                   )}
@@ -186,6 +194,13 @@ function App() {
             })
           )}
         </div>
+        {selectedMovieId && (
+          <MovieModal
+            movieId={selectedMovieId}
+            apiKey={apiKey}
+            onClose={() => setSelectedMovieId(null)}
+          />
+        )}
       </div>
     </div>
   );
