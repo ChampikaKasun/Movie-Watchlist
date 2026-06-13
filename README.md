@@ -1,7 +1,5 @@
 # 🎬 Movie Watchlist
 
-🚧 **Work in progress**
-
 A movie and TV watchlist web app that lets users browse and search films via
 the TMDB API and save their favourites to a personal watchlist. Built to
 practise working with external APIs alongside React and Firebase.
