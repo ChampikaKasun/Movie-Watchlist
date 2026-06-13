@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "./firebase";
+import {
+  collection, query, where, onSnapshot, addDoc, deleteDoc, doc,
+} from "firebase/firestore";
+import { auth, db } from "./firebase";
 import AuthCard from "./components/AuthCard";
 
 function App() {
@@ -8,6 +11,8 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [movies, setMovies] = useState([]);
   const [search, setSearch] = useState("");
+  const [watchlist, setWatchlist] = useState([]);
+  const [view, setView] = useState("browse"); // "browse" or "watchlist"
 
   const apiKey = import.meta.env.VITE_TMDB_API_KEY;
 
@@ -21,6 +26,16 @@ function App() {
 
   useEffect(() => {
     if (user) fetchPopular();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, "watchlist"), where("userId", "==", user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items = snapshot.docs.map((d) => ({ docId: d.id, ...d.data() }));
+      setWatchlist(items);
+    });
+    return () => unsubscribe();
   }, [user]);
 
   const fetchPopular = async () => {
@@ -50,6 +65,30 @@ function App() {
     }
   };
 
+  const findInWatchlist = (movieId) =>
+    watchlist.find((item) => item.movieId === movieId);
+
+  const toggleWatchlist = async (movie) => {
+    // movie may come from TMDB (movie.id) or from a saved item (movie.movieId)
+    const id = movie.id ?? movie.movieId;
+    const existing = findInWatchlist(id);
+    try {
+      if (existing) {
+        await deleteDoc(doc(db, "watchlist", existing.docId));
+      } else {
+        await addDoc(collection(db, "watchlist"), {
+          userId: user.uid,
+          movieId: movie.id,
+          title: movie.title,
+          poster_path: movie.poster_path || "",
+          vote_average: movie.vote_average || 0,
+        });
+      }
+    } catch (err) {
+      console.error("Error updating watchlist:", err);
+    }
+  };
+
   const handleLogout = async () => {
     await signOut(auth);
   };
@@ -62,6 +101,17 @@ function App() {
     return <AuthCard />;
   }
 
+  // Decide which list of movies to show
+  const moviesToShow = view === "browse"
+    ? movies.map((m) => ({
+        movieId: m.id,
+        title: m.title,
+        poster_path: m.poster_path,
+        vote_average: m.vote_average,
+        id: m.id,
+      }))
+    : watchlist;
+
   return (
     <div>
       <header className="app-header">
@@ -70,37 +120,70 @@ function App() {
       </header>
 
       <div className="page">
-        <form onSubmit={handleSearch} className="search-form">
-          <input
-            type="text"
-            placeholder="Search for a movie..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <button type="submit" className="btn-primary">Search</button>
-        </form>
+        {/* Tab switcher */}
+        <div className="view-tabs">
+          <button
+            className={view === "browse" ? "view-tab active" : "view-tab"}
+            onClick={() => setView("browse")}
+          >
+            Browse
+          </button>
+          <button
+            className={view === "watchlist" ? "view-tab active" : "view-tab"}
+            onClick={() => setView("watchlist")}
+          >
+            My Watchlist ({watchlist.length})
+          </button>
+        </div>
 
-        <h2 className="section-title">Movies</h2>
+        {/* Search only shows in Browse view */}
+        {view === "browse" && (
+          <form onSubmit={handleSearch} className="search-form">
+            <input
+              type="text"
+              placeholder="Search for a movie..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <button type="submit" className="btn-primary">Search</button>
+          </form>
+        )}
+
+        <h2 className="section-title">
+          {view === "browse" ? "Movies" : "My Watchlist"}
+        </h2>
+
         <div className="movie-grid">
-          {movies.length === 0 ? (
-            <p className="empty-state">No movies found.</p>
+          {moviesToShow.length === 0 ? (
+            <p className="empty-state">
+              {view === "browse" ? "No movies found." : "Your watchlist is empty. Add some movies from Browse!"}
+            </p>
           ) : (
-            movies.map((movie) => (
-              <div key={movie.id} className="movie-card">
-                {movie.poster_path ? (
-                  <img
-                    src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
-                    alt={movie.title}
-                  />
-                ) : (
-                  <div className="movie-poster-fallback">No image</div>
-                )}
-                <div className="movie-info">
-                  <div className="movie-title">{movie.title}</div>
-                  <div className="movie-rating">⭐ {movie.vote_average?.toFixed(1) ?? "N/A"}</div>
+            moviesToShow.map((movie) => {
+              const added = findInWatchlist(movie.movieId);
+              return (
+                <div key={movie.movieId} className="movie-card">
+                  {movie.poster_path ? (
+                    <img
+                      src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
+                      alt={movie.title}
+                    />
+                  ) : (
+                    <div className="movie-poster-fallback">No image</div>
+                  )}
+                  <div className="movie-info">
+                    <div className="movie-title">{movie.title}</div>
+                    <div className="movie-rating">⭐ {movie.vote_average?.toFixed(1) ?? "N/A"}</div>
+                    <button
+                      className={added ? "btn-watch added" : "btn-watch"}
+                      onClick={() => toggleWatchlist(movie)}
+                    >
+                      {added ? "✓ On Watchlist" : "+ Watchlist"}
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
