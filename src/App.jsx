@@ -155,7 +155,7 @@ function App() {
         id: m.id,
       }))
     : watchlist;
-    
+
   // Years from current year back to 1980
   const years = [];
   for (let y = new Date().getFullYear(); y >= 1980; y--) {
@@ -178,7 +178,10 @@ function App() {
     <div>
       <header className="app-header">
         <h1>🎬 Movie Watchlist</h1>
-        <button onClick={handleLogout} className="btn-logout">Log Out</button>
+        <div className="header-right">
+          <span className="header-email">{user.email}</span>
+          <button onClick={handleLogout} className="btn-logout">Log Out</button>
+        </div>
       </header>
 
       <div className="page">
@@ -209,16 +212,40 @@ function App() {
               <button type="submit" className="btn-primary">Search</button>
             </form>
 
-            <select
-              className="genre-select"
-              value={selectedGenre}
-              onChange={(e) => setSelectedGenre(e.target.value)}
-            >
-              <option value="">All Genres</option>
-              {genres.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
-              ))}
-            </select>
+            <div className="filter-row">
+              <select
+                className="genre-select"
+                value={selectedGenre}
+                onChange={(e) => setSelectedGenre(e.target.value)}
+              >
+                <option value="">All Genres</option>
+                {genres.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+
+              <select
+                className="genre-select"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+              >
+                <option value="">All Years</option>
+                {years.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+
+              <select
+                className="genre-select"
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+              >
+                <option value="">All Languages</option>
+                {languages.map((l) => (
+                  <option key={l.code} value={l.code}>{l.name}</option>
+                ))}
+              </select>
+            </div>
           </>
         )}
 
